@@ -1,5 +1,6 @@
 import argparse
 
+from cli._version import __version__
 from cli.commands import init as init_command
 
 
@@ -18,6 +19,11 @@ def main(argv: list[str] | None = None) -> int:
             "  foxkit init -d ./LazyFox-New --force"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     subparsers = parser.add_subparsers(dest="command")
 

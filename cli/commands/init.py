@@ -7,6 +7,9 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from loguru import logger
+from tqdm import tqdm
+
 REPO = "vagmr/LazyFox"
 API_BASE = f"https://api.github.com/repos/{REPO}"
 REPO_URL = f"https://github.com/{REPO}"
@@ -21,28 +24,28 @@ def run(args: argparse.Namespace) -> int:
     try:
         source = _resolve_source(version)
     except RuntimeError as exc:
-        print(f"[init] 获取下载源失败: {exc}")
+        logger.error(f"获取下载源失败: {exc}")
         return 1
 
     tag = source.get("tag_name") or version
     zip_url = source.get("asset_url")
     source_type = source.get("source_type", "unknown")
     if not zip_url:
-        print(f"[init] 下载源缺少 {ASSET_NAME} 附件，无法下载。")
+        logger.error(f"下载源缺少 {ASSET_NAME} 附件，无法下载。")
         return 1
 
-    print(f"[init] 仓库: {REPO_URL}")
-    print(f"[init] 来源: {source_type}")
-    print(f"[init] 版本: {tag}")
-    print(f"[init] 目标目录: {dest}")
+    logger.info(f"仓库: {REPO_URL}")
+    logger.info(f"来源: {source_type}")
+    logger.info(f"版本: {tag}")
+    logger.info(f"目标目录: {dest}")
 
     try:
         _download_and_extract(zip_url=zip_url, dest=dest, force=args.force)
     except RuntimeError as exc:
-        print(f"[init] 初始化失败: {exc}")
+        logger.error(f"初始化失败: {exc}")
         return 1
 
-    print("[init] 完成。")
+    logger.success("初始化完成！")
     return 0
 
 
@@ -129,11 +132,29 @@ def _download_and_extract(zip_url: str, dest: Path, force: bool) -> None:
 
 
 def _download_file(url: str, output_path: Path) -> None:
+    """下载文件，带 tqdm 进度条显示。"""
     request = urllib.request.Request(url, headers=_headers())
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
-            with output_path.open("wb") as file:
-                shutil.copyfileobj(response, file)
+            # 尝试获取文件总大小
+            total = int(response.headers.get("Content-Length", 0))
+            with (
+                tqdm(
+                    total=total or None,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc=ASSET_NAME,
+                    disable=total == 0,
+                ) as bar,
+                output_path.open("wb") as file,
+            ):
+                while True:
+                    chunk = response.read(8192)
+                    if not chunk:
+                        break
+                    file.write(chunk)
+                    bar.update(len(chunk))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="ignore")
         raise RuntimeError(f"下载失败 HTTP {exc.code}: {body}") from exc

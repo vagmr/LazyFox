@@ -1,8 +1,9 @@
 [project]
 name = "foxkit"
-version = "1.0.0"
-description = "Add your description here"
+version = "1.1.0"
+description = "FoxKit CLI - 浏览器自动化与逆向场景的 Python 模板脚手架工具"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.12"
 dependencies = [
     "camoufox[geoip]>=0.4.11",
