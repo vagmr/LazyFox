@@ -1,0 +1,2 @@
+"""FoxKit CLI package."""
+

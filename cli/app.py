@@ -1,0 +1,55 @@
+import argparse
+
+from cli.commands import init as init_command
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="foxkit",
+        description=(
+            "FoxKit CLI\n"
+            "用于从固定仓库 vagmr/LazyFox 下载 Release 附件 template.zip。"
+        ),
+        epilog=(
+            "示例:\n"
+            "  foxkit init\n"
+            "  foxkit init -v v0.1.0\n"
+            "  foxkit init -d ./LazyFox-New\n"
+            "  foxkit init -d ./LazyFox-New --force"
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    init_parser = subparsers.add_parser(
+        "init",
+        help="下载 template.zip（latest 或指定版本）",
+        description=(
+            "从固定仓库下载 Release 附件 template.zip:\n"
+            "https://github.com/vagmr/LazyFox"
+        ),
+    )
+    init_parser.add_argument(
+        "--version",
+        "-v",
+        help="Release tag（需包含 template.zip）。默认 latest",
+    )
+    init_parser.add_argument(
+        "--dest",
+        "-d",
+        default=".",
+        help="下载并解压到的目录，默认当前目录",
+    )
+    init_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="覆盖已存在的同名文件",
+    )
+    init_parser.set_defaults(handler=init_command.run)
+
+    args = parser.parse_args(argv)
+    handler = getattr(args, "handler", None)
+    if handler is None:
+        parser.print_help()
+        return 0
+    return handler(args)
